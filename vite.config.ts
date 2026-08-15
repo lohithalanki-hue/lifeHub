@@ -2,19 +2,12 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
-import apiMiddleware from './src/server-api';
 
 export default defineConfig(() => {
   return {
     plugins: [
       react(), 
       tailwindcss(),
-      {
-        name: 'api-middleware',
-        configureServer(server) {
-          server.middlewares.use('/api', apiMiddleware);
-        },
-      }
     ],
     resolve: {
       alias: {

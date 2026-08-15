@@ -98,24 +98,31 @@ export default function Therapist({ onDataUpdate, triggerXP }: TherapistProps) {
   }, [isBreathingActive]);
 
   // Handle messages dispatch to /api/chat proxy
-  const handleSendMessage = async (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent, retryUserText?: string) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || isGenerating) return;
+    const textToSend = (retryUserText || inputText).trim();
+    if (!textToSend || isGenerating) return;
 
-    const userText = inputText;
-    setInputText('');
+    if (!retryUserText) {
+      setInputText('');
+    }
     setIsGenerating(true);
 
-    const newUserMsg: TherapistMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: userText,
-      timestamp: new Date().toISOString()
-    };
-
-    const updatedMessages = [...messages, newUserMsg];
-    setMessages(updatedMessages);
-    storageService.saveTherapistHistory(updatedMessages);
+    let updatedMessages: TherapistMessage[];
+    if (retryUserText) {
+      // Retrying previous failed message
+      updatedMessages = [...messages];
+    } else {
+      const newUserMsg: TherapistMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'user',
+        content: textToSend,
+        timestamp: new Date().toISOString()
+      };
+      updatedMessages = [...messages, newUserMsg];
+      setMessages(updatedMessages);
+      storageService.saveTherapistHistory(updatedMessages);
+    }
 
     try {
       // API call to the proxy route
@@ -129,11 +136,15 @@ export default function Therapist({ onDataUpdate, triggerXP }: TherapistProps) {
       });
 
       const data = await response.json();
+
+      if (!response.ok || data.isError || !data.response) {
+        throw new Error(data.error || 'Failed to receive a response from Therapist.');
+      }
       
       const therapistMsg: TherapistMessage = {
         id: `msg-${Date.now()}-reply`,
         role: 'model',
-        content: data.response || "I am here, and I am listening. Tell me more.",
+        content: data.response,
         timestamp: new Date().toISOString()
       };
 
@@ -144,21 +155,37 @@ export default function Therapist({ onDataUpdate, triggerXP }: TherapistProps) {
       // Reward XP for wellness journaling dialogue
       triggerXP(100, "Conversed with Therapist regarding digital wellness");
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Therapist API call error:', err);
       
       const errorMsg: TherapistMessage = {
         id: `msg-${Date.now()}-err`,
         role: 'model',
-        content: "I'm having a brief connection flutter, but I am still with you. Remember: take a long, deep breath. The consistency of your effort is what matters. How does your chest feel right now?",
+        content: "I ran into a temporary connection issue while thinking. Please try sending your message again.",
         timestamp: new Date().toISOString()
       };
       
-      setMessages(prev => [...prev, errorMsg]);
+      const withError = [...updatedMessages, errorMsg];
+      setMessages(withError);
+      storageService.saveTherapistHistory(withError);
     } finally {
       setIsGenerating(false);
       onDataUpdate();
     }
+  };
+
+  // Reset conversation to fresh state
+  const handleStartNewSession = () => {
+    const freshChat: TherapistMessage[] = [
+      {
+        id: `chat-init-${Date.now()}`,
+        role: 'model',
+        content: "Hello! I'm your AI Therapist companion here in LifeHub. I'm here to support your mental wellness, help you talk through daily pressure, or guide you through a calming box breathing exercise. How are your thoughts and energy feeling today?",
+        timestamp: new Date().toISOString()
+      }
+    ];
+    setMessages(freshChat);
+    storageService.saveTherapistHistory(freshChat);
   };
 
   // Grounding Exercise next
@@ -254,7 +281,22 @@ export default function Therapist({ onDataUpdate, triggerXP }: TherapistProps) {
 
           {/* Tab 1: ACTIVE EMPATHETIC SESSION (Chat workspace) */}
           {activeTool === 'chat' && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-3xl flex flex-col h-[400px] shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-3xl flex flex-col h-[420px] shadow-sm overflow-hidden">
+              {/* Chat Sub-Header */}
+              <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Active Wellness Dialogue</span>
+                </div>
+                <button
+                  id="btn-new-therapist-session"
+                  onClick={handleStartNewSession}
+                  className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition"
+                >
+                  Start New Session
+                </button>
+              </div>
+
               {/* Chat messages stream */}
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {messages.map((m) => (

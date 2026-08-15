@@ -23,17 +23,27 @@ function getAiClient() {
   return null;
 }
 
-// Helper to parse request body for Connect/Vite dev server middleware safely with a timeout fallback
+// Helper to parse request body for Connect/Vite dev server middleware safely
 async function getRequestBody(req: any): Promise<any> {
-  if (req.body) {
-    return req.body;
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'object') return req.body;
+    if (typeof req.body === 'string' && req.body.trim()) {
+      try {
+        return JSON.parse(req.body);
+      } catch {
+        return {};
+      }
+    }
+  }
+  if (req.readableEnded || req.complete) {
+    return req.body || {};
   }
   return new Promise((resolve) => {
     let body = '';
     
     const timeout = setTimeout(() => {
-      resolve({});
-    }, 2000);
+      resolve(req.body && typeof req.body === 'object' ? req.body : {});
+    }, 500);
 
     req.on('data', (chunk: any) => {
       body += chunk;
@@ -41,21 +51,25 @@ async function getRequestBody(req: any): Promise<any> {
     req.on('end', () => {
       clearTimeout(timeout);
       try {
-        resolve(body ? JSON.parse(body) : {});
+        resolve(body ? JSON.parse(body) : (req.body && typeof req.body === 'object' ? req.body : {}));
       } catch (e) {
-        resolve({});
+        resolve(req.body && typeof req.body === 'object' ? req.body : {});
       }
+    });
+    req.on('error', () => {
+      clearTimeout(timeout);
+      resolve(req.body && typeof req.body === 'object' ? req.body : {});
     });
   });
 }
 
-// Fallback response for therapist if Gemini key is missing
-const THERAPIST_FALLBACKS = [
-  "I hear you, and I'm really glad you shared that with me. It sounds like you've been carrying a heavy load. Remember to take a deep, slow breath right now. Let's tackle this step-by-step together.",
-  "That sounds challenging, but please recognize the effort you're putting in. Self-improvement is a journey of small, consistent steps. How can we make things just a tiny bit lighter for you today?",
-  "It's completely normal to feel overwhelmed when balancing academic goals and personal growth. Your productivity score or streak doesn't define your worth. Let's focus on a simple grounding exercise: inhale for 4 seconds, hold for 4, and exhale for 4.",
-  "Thank you for being open about how you're feeling. Acknowledging stress or procrastination is actually the first major step to overcoming it. Let's break down your biggest priority today into three micro-tasks. Would you like to try that?",
-  "I'm here for you. Even on days when motivation is low, just showing up for yourself matters. Be kind to your mind today. Let's write down one thing you're grateful for, no matter how small."
+// Candidate models in order of quota availability and speed
+const CANDIDATE_CHAT_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.7-flash',
+  'gemini-flash-latest'
 ];
 
 // Fallback quotes
@@ -686,86 +700,97 @@ export default async function apiMiddleware(req: any, res: any, next: any) {
 
       const client = getAiClient();
       if (!client) {
-        // Fallback: Pick a relevant fallback response based on message keywords or randomly
-        const userMsg = messages.length > 0 ? messages[messages.length - 1].content.toLowerCase() : '';
-        let reply = THERAPIST_FALLBACKS[Math.floor(Math.random() * THERAPIST_FALLBACKS.length)];
-        
-        if (userMsg.includes('suicide') || userMsg.includes('self-harm') || userMsg.includes('kill myself') || userMsg.includes('end my life')) {
-          reply = "I hear how much pain you're in, but I cannot replace professional care. Your safety is extremely important. Please reach out to someone who can help right now. You can call or text the Suicide & Crisis Lifeline at 988 (US/Canada), or contact local emergency services immediately. There are people who want to support you through this.";
-        } else if (userMsg.includes('anxious') || userMsg.includes('anxiety') || userMsg.includes('panic')) {
-          reply = "Anxiety can feel incredibly physical and overwhelming. Let's practice a brief grounding exercise together. Name 3 things in your room you can see, 2 things you can touch, and 1 sound you can hear. Let's slow down your heart rate. I'm here with you.";
-        } else if (userMsg.includes('exam') || userMsg.includes('study') || userMsg.includes('mark') || userMsg.includes('grade')) {
-          reply = "Exam and academic pressure is very real, but remember: your scores are snapshots of learning, not measures of your worth or future potential. Let's break your study session into a 25-minute Pomodoro block. Just focus on one simple question for now.";
-        } else if (userMsg.includes('depressed') || userMsg.includes('sad') || userMsg.includes('lonely')) {
-          reply = "I'm so sorry you're feeling lonely and down today. It takes courage to say that. Please treat yourself with total kindness today. Would you like to do a gentle journaling prompt or just let me know more of what's on your mind? I am here to listen.";
-        }
-
-        res.statusCode = 200;
-        res.end(JSON.stringify({ response: reply, usingFallback: true }));
+        res.statusCode = 503;
+        res.end(JSON.stringify({ 
+          error: "Gemini API key is not configured on the server. Please set a valid GEMINI_API_KEY.",
+          isError: true 
+        }));
         return;
       }
 
-      // We have Gemini client configured!
-      try {
-        const systemInstruction = `You are "Therapist", an empathetic, warm, supportive, and active-listening AI helper inside the LifeHub dashboard. 
+      const systemInstruction = `You are "Therapist", an empathetic, warm, supportive, and active-listening AI wellness companion inside the LifeHub dashboard. 
 The user is currently checked in with a mood of "${mood}".
 Guidelines:
-- Help users navigate stress, anxiety, burnout, loneliness, procrastination, and exam pressure.
-- Be deeply conversational, thoughtful, and professional. Speak in gentle, encouraging tones.
-- Do NOT use clinical jargon or pretend to be a licensed doctor/therapist. Include a subtle disclaimer when helpful, but keep it warm.
-- Provide simple actionable coping tips, breathing exercises (e.g., box breathing), or journaling prompts when appropriate.
-- CRITICAL SAFETY: If the user expresses suicidal ideation, self-harm intent, or a severe crisis, you MUST immediately respond with emergency resources. Urge them to reach out to loved ones or call/text 988 (or their local crisis line) immediately. Do NOT try to solve severe clinical issues yourself.`;
+- Actively listen and respond to the user's specific statements and questions with genuine compassion, emotional intelligence, and helpful perspective.
+- Help users navigate stress, anxiety, burnout, loneliness, procrastination, academic pressure, and personal goals.
+- If the user sends a very short message or single character like ".", acknowledge it gently and warmly ask what they are thinking or feeling right now.
+- If the user sends a greeting (like "hi" or "hello"), warmly welcome them, ask how they are feeling today, and offer to help.
+- If the user shares an achievement or high score, celebrate their milestone genuinely.
+- If the user shares that they are stressed or struggling with a subject (e.g. physics, calculus), validate their feelings and offer a constructive, calming way forward.
+- Keep multi-turn conversation context in mind so you remember what was discussed previously.
+- CRITICAL SAFETY: If the user expresses suicidal ideation, self-harm intent, or a severe crisis, you MUST immediately respond with emergency crisis resources. Urge them to reach out to loved ones or call/text 988 (or their local crisis line) immediately. Do NOT attempt to handle clinical emergencies on your own.`;
 
-        // Format and normalize history for Gemini SDK (prevent consecutive same-role validation errors)
-        const rawContents = messages.map((m: any) => ({
-          role: m.role === 'model' ? 'model' : 'user',
-          text: m.content || ""
-        })).filter((item: any) => item.text.trim() !== "");
+      // Format and normalize history for Gemini SDK
+      const rawTurns = (Array.isArray(messages) ? messages : [])
+        .map((m: any) => ({
+          role: (m.role === 'model' || m.role === 'assistant') ? 'model' : 'user',
+          text: typeof m.content === 'string' ? m.content.trim() : ''
+        }))
+        .filter((item: any) => item.text !== '');
 
-        const contents: any[] = [];
-        for (const item of rawContents) {
-          if (contents.length === 0) {
-            // Must start with user role
-            if (item.role === 'user') {
-              contents.push({ role: 'user', parts: [{ text: item.text }] });
-            }
-          } else {
-            const last = contents[contents.length - 1];
-            if (last.role === item.role) {
-              // Merge consecutive same-role text entries
-              last.parts[0].text += "\n\n" + item.text;
-            } else {
-              contents.push({ role: item.role, parts: [{ text: item.text }] });
-            }
-          }
-        }
-
-        // If the conversation is empty after filtering/normalizing, start with a simple user text
+      const contents: any[] = [];
+      for (const item of rawTurns) {
         if (contents.length === 0) {
-          contents.push({ role: 'user', parts: [{ text: "Hello" }] });
-        }
-
-        const response = await client.models.generateContent({
-          model: 'gemini-3.5-flash',
-          contents: contents,
-          config: {
-            systemInstruction: systemInstruction,
-            temperature: 0.7,
-            maxOutputTokens: 800,
+          // Gemini requires the conversation array to start with a user role turn
+          if (item.role === 'user') {
+            contents.push({ role: 'user', parts: [{ text: item.text }] });
           }
-        });
-
-        const replyText = response.text || "I'm listening. Please tell me more.";
-        res.statusCode = 200;
-        res.end(JSON.stringify({ response: replyText }));
-      } catch (geminiErr: any) {
-        console.warn('Gemini therapist companion API is currently unavailable or rate limited, using compassionate local rule-based response fallback.');
-        res.statusCode = 200;
-        res.end(JSON.stringify({ 
-          response: "I'm having a small connection difficulty, but I'm still listening. Please take a deep breath. How are you holding up right now?", 
-          usingFallback: true 
-        }));
+        } else {
+          const last = contents[contents.length - 1];
+          if (last.role === item.role) {
+            // Merge consecutive turns with the same role
+            last.parts[0].text += "\n\n" + item.text;
+          } else {
+            contents.push({ role: item.role, parts: [{ text: item.text }] });
+          }
+        }
       }
+
+      // If no user turn was present yet, ensure at least the user's intended prompt is used
+      if (contents.length === 0) {
+        const lastUser = rawTurns.find((t: any) => t.role === 'user');
+        const textToSend = lastUser?.text || "Hello";
+        contents.push({ role: 'user', parts: [{ text: textToSend }] });
+      }
+
+      let generatedText: string | null = null;
+      let lastError: any = null;
+
+      for (const modelName of CANDIDATE_CHAT_MODELS) {
+        try {
+          const response = await client.models.generateContent({
+            model: modelName,
+            contents: contents,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.7,
+              maxOutputTokens: 800,
+            }
+          });
+
+          if (response && response.text && response.text.trim()) {
+            generatedText = response.text.trim();
+            break;
+          }
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`Model ${modelName} failed, falling back to next available model:`, err?.message || err);
+        }
+      }
+
+      if (generatedText) {
+        res.statusCode = 200;
+        res.end(JSON.stringify({ response: generatedText }));
+        return;
+      }
+
+      console.error('All candidate Gemini models failed:', lastError?.message || lastError);
+      res.statusCode = 500;
+      res.end(JSON.stringify({ 
+        error: "Something went wrong while generating a response. Please try again.",
+        isError: true,
+        details: lastError?.message || 'Generation failed'
+      }));
       return;
     }
 
@@ -817,7 +842,7 @@ Each object in the array MUST have these exact properties:
 - date: string (e.g. "Today")`;
 
           const response = await client.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.7-flash',
             contents: prompt,
             config: {
               temperature: 0.8,
@@ -875,7 +900,7 @@ The object MUST have these properties:
 - insight: string (1-2 sentences of modern actionable reflection for productivity or anxiety relief)`;
 
         const response = await client.models.generateContent({
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.7-flash',
           contents: prompt,
           config: {
             temperature: 0.8,

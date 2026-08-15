@@ -65,10 +65,9 @@ async function getRequestBody(req: any): Promise<any> {
 
 // Candidate models in order of quota availability and speed
 const CANDIDATE_CHAT_MODELS = [
-  'gemini-flash-lite-latest',
-  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash',
   'gemini-3.1-flash-lite',
-  'gemini-3.7-flash',
+  'gemini-2.5-flash',
   'gemini-flash-latest'
 ];
 
@@ -842,7 +841,7 @@ Each object in the array MUST have these exact properties:
 - date: string (e.g. "Today")`;
 
           const response = await client.models.generateContent({
-            model: 'gemini-3.7-flash',
+            model: 'gemini-3.5-flash',
             contents: prompt,
             config: {
               temperature: 0.8,
@@ -900,7 +899,7 @@ The object MUST have these properties:
 - insight: string (1-2 sentences of modern actionable reflection for productivity or anxiety relief)`;
 
         const response = await client.models.generateContent({
-          model: 'gemini-3.7-flash',
+          model: 'gemini-3.5-flash',
           contents: prompt,
           config: {
             temperature: 0.8,

@@ -1,0 +1,87 @@
+name: Repair LifeHub therapist Gemini integration
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Patch therapist model configuration
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/server-api.ts')
+          s = p.read_text()
+
+          old_models = """const CANDIDATE_CHAT_MODELS = [
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-2.5-flash',
+            'gemini-flash-latest'
+          ];"""
+          new_models = """const CANDIDATE_CHAT_MODELS = [
+            'gemini-3.6-flash',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-2.5-flash'
+          ];"""
+          if old_models in s:
+              s = s.replace(old_models, new_models, 1)
+          elif "const CANDIDATE_CHAT_MODELS = [" not in s:
+              raise SystemExit('Could not find therapist model list; refusing unsafe edit')
+          else:
+              start = s.index('const CANDIDATE_CHAT_MODELS = [')
+              end = s.index('];', start) + 2
+              s = s[:start] + new_models + s[end:]
+
+          old_config = """config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.7,
+              maxOutputTokens: 800,
+            }"""
+          new_config = """config: {
+              systemInstruction: systemInstruction,
+              ...(modelName.startsWith('gemini-3.') ? {} : { temperature: 0.7 }),
+              maxOutputTokens: 800,
+            }"""
+          if old_config in s:
+              s = s.replace(old_config, new_config, 1)
+          elif 'modelName.startsWith(\'gemini-3.\')' not in s:
+              raise SystemExit('Could not find therapist generation config; refusing unsafe edit')
+
+          # The news and quote endpoints should use a stable explicit model rather than
+          # the hot-swapped alias, while therapist chat gets the fallback chain above.
+          s = s.replace("model: 'gemini-3.5-flash',", "model: 'gemini-3.6-flash',")
+
+          p.write_text(s)
+          print('Therapist Gemini configuration patched successfully.')
+          PY
+
+      - name: Validate TypeScript build
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/server-api.ts
+          if git diff --cached --quiet; then
+            echo "No changes required."
+            exit 0
+          fi
+          git commit -m "fix therapist Gemini model fallback and config"
+          git push

@@ -21,51 +21,41 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path('src/server-api.ts')
           s = p.read_text()
+          original = s
 
-          old_models = """const CANDIDATE_CHAT_MODELS = [
-            'gemini-3.5-flash',
-            'gemini-3.1-flash-lite',
-            'gemini-2.5-flash',
-            'gemini-flash-latest'
-          ];"""
-          new_models = """const CANDIDATE_CHAT_MODELS = [
-            'gemini-3.6-flash',
-            'gemini-3.5-flash',
-            'gemini-3.1-flash-lite',
-            'gemini-2.5-flash'
-          ];"""
-          if old_models in s:
-              s = s.replace(old_models, new_models, 1)
-          elif "const CANDIDATE_CHAT_MODELS = [" not in s:
-              raise SystemExit('Could not find therapist model list; refusing unsafe edit')
-          else:
-              start = s.index('const CANDIDATE_CHAT_MODELS = [')
-              end = s.index('];', start) + 2
-              s = s[:start] + new_models + s[end:]
+          # Replace the whole candidate list regardless of its current contents.
+          s, n = re.subn(
+              r"const CANDIDATE_CHAT_MODELS = \[[\s\S]*?\];",
+              """const CANDIDATE_CHAT_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash'
+];""",
+              s,
+              count=1,
+          )
+          if n != 1:
+              raise SystemExit('Could not find therapist model list')
 
-          old_config = """config: {
-              systemInstruction: systemInstruction,
-              temperature: 0.7,
-              maxOutputTokens: 800,
-            }"""
-          new_config = """config: {
-              systemInstruction: systemInstruction,
-              ...(modelName.startsWith('gemini-3.') ? {} : { temperature: 0.7 }),
-              maxOutputTokens: 800,
-            }"""
-          if old_config in s:
-              s = s.replace(old_config, new_config, 1)
-          elif 'modelName.startsWith(\'gemini-3.\')' not in s:
-              raise SystemExit('Could not find therapist generation config; refusing unsafe edit')
+          # Replace retired/invalid hard-coded model IDs elsewhere in this API file.
+          s = s.replace("'gemini-3.7-flash'", "'gemini-3.6-flash'")
+          s = s.replace("'gemini-3.5-flash'", "'gemini-3.6-flash'")
 
-          # The news and quote endpoints should use a stable explicit model rather than
-          # the hot-swapped alias, while therapist chat gets the fallback chain above.
-          s = s.replace("model: 'gemini-3.5-flash',", "model: 'gemini-3.6-flash',")
+          # Gemini 3.6 Flash / 3.5 Flash-Lite no longer accept deprecated sampling params.
+          s = re.sub(r"^\s*temperature:\s*[^,\n]+,\s*\n", "", s, flags=re.MULTILINE)
+          s = re.sub(r"^\s*topP:\s*[^,\n]+,\s*\n", "", s, flags=re.MULTILINE)
+          s = re.sub(r"^\s*topK:\s*[^,\n]+,\s*\n", "", s, flags=re.MULTILINE)
+
+          if s == original:
+              raise SystemExit('Patch produced no source changes')
 
           p.write_text(s)
-          print('Therapist Gemini configuration patched successfully.')
+          print(f'Patched therapist backend; model-list replacements: {n}')
           PY
 
       - name: Validate TypeScript build
@@ -79,9 +69,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/server-api.ts
-          if git diff --cached --quiet; then
-            echo "No changes required."
-            exit 0
-          fi
-          git commit -m "fix therapist Gemini model fallback and config"
+          git commit -m "fix therapist Gemini model integration"
           git push

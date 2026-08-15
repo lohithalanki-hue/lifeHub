@@ -1,0 +1,57 @@
+name: Fix therapist Gemini models
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-therapist-gemini.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch Gemini model configuration
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('src/server-api.ts')
+          text = p.read_text()
+
+          old = """const CANDIDATE_CHAT_MODELS = [\n  'gemini-flash-lite-latest',\n  'gemini-3.5-flash-lite',\n  'gemini-3.1-flash-lite',\n  'gemini-3.7-flash',\n  'gemini-flash-latest'\n];"""
+
+          new = """const CANDIDATE_CHAT_MODELS = [\n  'gemini-3.5-flash',\n  'gemini-3.1-flash-lite',\n  'gemini-2.5-flash',\n  'gemini-flash-latest'\n];"""
+
+          if old not in text:
+              raise SystemExit('Expected therapist model list was not found; refusing to modify the file.')
+
+          text = text.replace(old, new, 1)
+          text = text.replace("model: 'gemini-3.7-flash'", "model: 'gemini-3.5-flash'")
+          p.write_text(text)
+
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/server-api.ts
+          git diff --cached --check
+          git diff --cached -- src/server-api.ts
+          git commit -m "Fix therapist Gemini model fallbacks" || exit 0
+          git push origin HEAD:main
+
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          rm -f .github/workflows/fix-therapist-gemini.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Remove temporary therapist fix workflow" || exit 0
+          git push origin HEAD:main

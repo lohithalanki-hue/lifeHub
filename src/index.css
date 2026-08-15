@@ -1,0 +1,655 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400&family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Merriweather", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Turn all Tailwind Slate variables into rich, neutral Zinc/Charcoal/Black to achieve cool black & white styling app-wide */
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-150: #e4e4e7;
+  --color-slate-200: #e4e4e7;
+  --color-slate-250: #d4d4d8;
+  --color-slate-300: #d4d4d8;
+  --color-slate-350: #a1a1aa;
+  --color-slate-400: #a1a1aa;
+  --color-slate-450: #71717a;
+  --color-slate-500: #71717a;
+  --color-slate-550: #52525b;
+  --color-slate-600: #52525b;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #27272a;
+  --color-slate-850: #18181b;
+  --color-slate-900: #09090b;
+  --color-slate-950: #000000;
+}
+
+/* Base Styles */
+input, select, textarea {
+  color: #1e293b; /* Slate 800 */
+}
+
+input::placeholder, textarea::placeholder {
+  color: #64748b; /* Slate 500 */
+}
+
+.dark input, .dark select, .dark textarea {
+  color: #f8fafc; /* Slate 50 */
+}
+
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #94a3b8; /* Slate 400 */
+}
+
+/* Dynamic Monochromatic Themes - Mapping Indigo classes to elegant black, white, and grey shades dynamically */
+.theme-accent-indigo { /* Midnight Ink: High-contrast pure black & stark white */
+  --color-indigo-50: #ffffff;
+  --color-indigo-100: #e4e4e7;
+  --color-indigo-200: #d4d4d8;
+  --color-indigo-300: #a1a1aa;
+  --color-indigo-400: #52525b;
+  --color-indigo-500: #09090b;
+  --color-indigo-600: #18181b;
+  --color-indigo-700: #27272a;
+  --color-indigo-800: #09090b;
+  --color-indigo-900: #000000;
+  --color-indigo-950: #000000;
+}
+
+.dark .theme-accent-indigo {
+  --color-indigo-50: #09090b;
+  --color-indigo-100: #18181b;
+  --color-indigo-200: #27272a;
+  --color-indigo-300: #3f3f46;
+  --color-indigo-400: #a1a1aa;
+  --color-indigo-500: #ffffff;
+  --color-indigo-600: #f4f4f5;
+  --color-indigo-700: #e4e4e7;
+  --color-indigo-800: #ffffff;
+  --color-indigo-900: #ffffff;
+  --color-indigo-950: #ffffff;
+}
+
+.theme-accent-violet { /* Asphalt Slate: Premium cool carbon grays & deep carbon */
+  --color-indigo-50: #fafafa;
+  --color-indigo-100: #f4f4f5;
+  --color-indigo-200: #e4e4e7;
+  --color-indigo-300: #a1a1aa;
+  --color-indigo-400: #52525b;
+  --color-indigo-500: #27272a;
+  --color-indigo-600: #18181b;
+  --color-indigo-700: #3f3f46;
+  --color-indigo-800: #27272a;
+  --color-indigo-900: #09090b;
+  --color-indigo-950: #000000;
+}
+
+.dark .theme-accent-violet {
+  --color-indigo-50: #09090b;
+  --color-indigo-100: #18181b;
+  --color-indigo-200: #27272a;
+  --color-indigo-300: #52525b;
+  --color-indigo-400: #a1a1aa;
+  --color-indigo-500: #fafafa;
+  --color-indigo-600: #f4f4f5;
+  --color-indigo-700: #e4e4e7;
+  --color-indigo-800: #ffffff;
+  --color-indigo-900: #ffffff;
+  --color-indigo-950: #ffffff;
+}
+
+.theme-accent-rose { /* Industrial Steel: Structural mechanical concrete & heavy metal */
+  --color-indigo-50: #fafafa;
+  --color-indigo-100: #f5f5f5;
+  --color-indigo-200: #e5e5e5;
+  --color-indigo-300: #d4d4d4;
+  --color-indigo-400: #737373;
+  --color-indigo-500: #262626;
+  --color-indigo-600: #171717;
+  --color-indigo-700: #404040;
+  --color-indigo-800: #262626;
+  --color-indigo-900: #0a0a0a;
+  --color-indigo-950: #000000;
+}
+
+.dark .theme-accent-rose {
+  --color-indigo-50: #0a0a0a;
+  --color-indigo-100: #171717;
+  --color-indigo-200: #262626;
+  --color-indigo-300: #525252;
+  --color-indigo-400: #a3a3a3;
+  --color-indigo-500: #fafafa;
+  --color-indigo-600: #f5f5f5;
+  --color-indigo-700: #e5e5e5;
+  --color-indigo-800: #ffffff;
+  --color-indigo-900: #ffffff;
+  --color-indigo-950: #ffffff;
+}
+
+.theme-accent-emerald { /* Silver Mist: Elegant luxury satin platinum & titanium silver */
+  --color-indigo-50: #fcfcfc;
+  --color-indigo-100: #f0f0f1;
+  --color-indigo-200: #e1e1e3;
+  --color-indigo-300: #b0b0b5;
+  --color-indigo-400: #7a7a80;
+  --color-indigo-500: #424247;
+  --color-indigo-600: #2d2d30;
+  --color-indigo-700: #57575c;
+  --color-indigo-800: #424247;
+  --color-indigo-900: #1c1c1e;
+  --color-indigo-950: #0a0a0a;
+}
+
+.dark .theme-accent-emerald {
+  --color-indigo-50: #1c1c1e;
+  --color-indigo-100: #2d2d30;
+  --color-indigo-200: #424247;
+  --color-indigo-300: #57575c;
+  --color-indigo-400: #b0b0b5;
+  --color-indigo-500: #fcfcfc;
+  --color-indigo-600: #f0f0f1;
+  --color-indigo-700: #e1e1e3;
+  --color-indigo-800: #ffffff;
+  --color-indigo-900: #ffffff;
+  --color-indigo-950: #ffffff;
+}
+
+.theme-accent-amber { /* Brutalist Obsidian: Raw wired charcoal grids & stark inkwells */
+  --color-indigo-50: #f4f4f5;
+  --color-indigo-100: #e4e4e7;
+  --color-indigo-200: #d4d4d8;
+  --color-indigo-300: #a1a1aa;
+  --color-indigo-400: #71717a;
+  --color-indigo-500: #09090b;
+  --color-indigo-600: #000000;
+  --color-indigo-700: #27272a;
+  --color-indigo-800: #18181b;
+  --color-indigo-900: #000000;
+  --color-indigo-950: #000000;
+}
+
+.dark .theme-accent-amber {
+  --color-indigo-50: #000000;
+  --color-indigo-100: #09090b;
+  --color-indigo-200: #18181b;
+  --color-indigo-300: #3f3f46;
+  --color-indigo-400: #71717a;
+  --color-indigo-500: #ffffff;
+  --color-indigo-600: #f4f4f5;
+  --color-indigo-700: #d4d4d8;
+  --color-indigo-800: #ffffff;
+  --color-indigo-900: #ffffff;
+  --color-indigo-950: #ffffff;
+}
+
+/* High Density Compact Layout */
+.high-density {
+  --spacing-6: 0.875rem !important;
+  --spacing-8: 1rem !important;
+  --spacing-5: 0.75rem !important;
+  --spacing-4: 0.625rem !important;
+}
+
+.high-density p, .high-density span, .high-density div, .high-density h1, .high-density h2, .high-density h3, .high-density h4, .high-density h5, .high-density h6 {
+  letter-spacing: -0.01em;
+}
+
+.high-density .p-6, .high-density .lg\:p-8 {
+  padding: 0.875rem !important;
+}
+
+.high-density .p-5 {
+  padding: 0.75rem !important;
+}
+
+.high-density .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.875rem !important;
+}
+
+.high-density .gap-6 {
+  gap: 0.875rem !important;
+}
+
+.high-density .h-\[360px\] {
+  height: 290px !important;
+}
+
+/* Clean Black and White utilities */
+.bg-fade-mono {
+  background-color: #09090b; /* zinc-950 */
+}
+
+.bg-fade-light {
+  background-color: #f4f4f5; /* zinc-100 */
+}
+
+.bg-fade-accent-dark {
+  background-color: #000000;
+}
+
+.bg-fade-accent-light {
+  background-color: #ffffff;
+}
+
+.text-fade-glow {
+  color: #ffffff;
+}
+
+.text-fade-glow-dark {
+  color: #09090b;
+}
+
+/* Fluid transition speed */
+.transition-all-fluid {
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Premium Brutalist & Monochromatic Micro-interactions */
+.interactive-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.interactive-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+}
+.dark .interactive-card:hover {
+  box-shadow: 0 10px 30px -10px rgba(255, 255, 255, 0.04);
+}
+.interactive-card:active {
+  transform: translateY(0) scale(0.995);
+}
+
+/* Tactile Click feedback for active controls */
+button, .clickable-action {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+button:active:not(:disabled), .clickable-action:active {
+  transform: scale(0.96);
+}
+
+/* Customized modern minimal scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Elegant monochromatic outlines and border styles */
+.mono-border-glow {
+  outline: 2px solid transparent;
+  transition: outline-color 0.2s ease, border-color 0.2s ease;
+}
+.mono-border-glow:focus-within {
+  border-color: #000000;
+  outline-color: rgba(0, 0, 0, 0.1);
+}
+.dark .mono-border-glow:focus-within {
+  border-color: #ffffff;
+  outline-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Automatically enhance standard cards across the app with tactile, sleek monochromatic responses and glass transparent black-tint */
+.bg-white.border.rounded-3xl, 
+.bg-white.border.rounded-2xl, 
+.bg-slate-900.border.rounded-3xl, 
+.bg-slate-900.border.rounded-2xl {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.bg-white.border.rounded-3xl:hover, 
+.bg-white.border.rounded-2xl:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-indigo-200, #d4d4d8);
+}
+
+/* In dark mode, ensure bg-white cards that fall back to dark backgrounds do not get white/light borders on hover */
+.dark .bg-white.border.rounded-3xl:hover, 
+.dark .bg-white.border.rounded-2xl:hover,
+.dark [class*="bg-white"].border:hover,
+.dark [class*="bg-slate"].border:hover,
+.dark [class*="bg-zinc"].border:hover,
+.dark [class*="dark:bg-slate"].border:hover,
+.dark [class*="dark:bg-zinc"].border:hover {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ==========================================================================
+   GLOBAL CRYSTAL GLASS DESIGN SYSTEM & TOKENS
+   ========================================================================== */
+
+:root {
+  /* Light Mode Crystal Glass Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-primary: rgba(255, 255, 255, 0.82);
+  --glass-bg-secondary: rgba(255, 255, 255, 0.60);
+  --glass-bg-nested: rgba(255, 255, 255, 0.45);
+  --glass-bg-hover: rgba(255, 255, 255, 0.90);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-border-subtle: rgba(0, 0, 0, 0.06);
+  --glass-border-hover: rgba(255, 255, 255, 0.95);
+  --glass-blur: 24px;
+  --glass-shadow: 0 10px 30px -5px rgba(31, 38, 135, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  --glass-shadow-hover: 0 16px 36px -6px rgba(31, 38, 135, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  --glass-radius: 24px;
+  --glass-radius-sm: 16px;
+  --glass-glow: 0 0 24px rgba(99, 102, 241, 0.12);
+  --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.2) 100%);
+  --glass-inner-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-accent: rgba(99, 102, 241, 0.08);
+}
+
+.dark {
+  /* Dark Mode Futuristic OS Crystal Glass Tokens */
+  --glass-bg: rgba(14, 14, 22, 0.60);
+  --glass-bg-primary: rgba(18, 18, 28, 0.70);
+  --glass-bg-secondary: rgba(12, 12, 18, 0.50);
+  --glass-bg-nested: rgba(255, 255, 255, 0.035);
+  --glass-bg-hover: rgba(24, 24, 38, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.13);
+  --glass-border-subtle: rgba(255, 255, 255, 0.07);
+  --glass-border-hover: rgba(255, 255, 255, 0.24);
+  --glass-blur: 28px;
+  --glass-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.45), 0 0 1px 1px rgba(255, 255, 255, 0.06);
+  --glass-shadow-hover: 0 16px 44px 0 rgba(0, 0, 0, 0.60), 0 0 24px 0 rgba(129, 140, 248, 0.16);
+  --glass-glow: 0 0 24px rgba(129, 140, 248, 0.18);
+  --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --glass-inner-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(255, 255, 255, 0.02);
+  --glass-accent: rgba(139, 92, 246, 0.16);
+}
+
+/* ==========================================================================
+   CRYSTAL GLASS UTILITY CLASSES
+   ========================================================================== */
+
+/* Primary Crystal Glass Card */
+.glass-card,
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow);
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Crystal glass reflection highlight along top edge */
+.glass-card::before,
+.glass-panel::before,
+.glass-card-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.25) 30%, 
+    rgba(255, 255, 255, 0.4) 50%, 
+    rgba(255, 255, 255, 0.25) 70%, 
+    rgba(255, 255, 255, 0) 100%);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dark .glass-card::before,
+.dark .glass-panel::before,
+.dark .glass-card-primary::before {
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(147, 197, 253, 0.20) 25%, 
+    rgba(216, 180, 254, 0.35) 50%, 
+    rgba(147, 197, 253, 0.20) 75%, 
+    rgba(255, 255, 255, 0) 100%);
+}
+
+/* Primary Hero Card with Ambient Violet/Blue Backlight */
+.glass-card-primary {
+  background: var(--glass-bg-primary);
+  backdrop-filter: blur(var(--glass-blur)) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(190%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow), 0 0 30px rgba(99, 102, 241, 0.08);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .glass-card-primary {
+  box-shadow: var(--glass-shadow), 0 0 30px rgba(129, 140, 248, 0.12);
+}
+
+/* Interactive Glass Card with micro-elevation & subtle glow on hover */
+.glass-card-interactive,
+.glass-card:hover,
+.glass-panel:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+.glass-card-interactive:hover {
+  transform: translateY(-3px);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+/* Nested Glass Cards (Cards inside cards - lighter, thinner depth) */
+.glass-card-nested,
+.glass-subtle {
+  background: var(--glass-bg-nested);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--glass-radius-sm);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-nested:hover,
+.glass-subtle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Floating Glass Header Bar */
+.glass-header {
+  background: var(--glass-bg-primary);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-header {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.50), inset 0 -1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Sticky Glass Sidebar Navigation */
+.glass-sidebar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(32px) saturate(190%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  border-right: 1px solid var(--glass-border);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+.dark .glass-sidebar {
+  background: rgba(8, 8, 14, 0.75);
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.60), inset -1px 0 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Crystal Glass Modal / Drawer Overlay */
+.glass-modal {
+  background: var(--glass-bg-primary);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 32px rgba(129, 140, 248, 0.15);
+}
+
+/* Glass Pill / Badge */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+}
+
+/* ==========================================================================
+   GLOBAL CONTAINER OVERRIDES (Ensures all existing cards receive crystal glass)
+   ========================================================================== */
+
+/* Dark mode containers & cards */
+.dark .bg-slate-900,
+.dark .bg-zinc-900,
+.dark .bg-slate-900.border,
+.dark [class*="bg-slate-900"],
+.dark [class*="bg-zinc-900"],
+.dark [class*="dark:bg-slate-900"],
+.dark [class*="dark:bg-zinc-900"],
+.dark .bg-slate-950\/20,
+.dark .bg-slate-900\/50 {
+  background-color: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow: var(--glass-shadow) !important;
+}
+
+.dark .bg-slate-900.border:hover,
+.dark .bg-slate-900:hover,
+.dark [class*="bg-slate-900"]:hover,
+.dark [class*="dark:bg-slate-900"]:hover,
+.dark [class*="dark:bg-zinc-900"]:hover {
+  transform: translateY(-2px);
+  border-color: var(--glass-border-hover) !important;
+  box-shadow: var(--glass-shadow-hover) !important;
+}
+
+/* Light mode refined frosted glass */
+.bg-white.border.rounded-3xl, 
+.bg-white.border.rounded-2xl,
+.bg-white.border {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.bg-white.border.rounded-3xl:hover, 
+.bg-white.border.rounded-2xl:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover);
+  border-color: var(--glass-border-hover);
+}
+
+/* Deep Futuristic Ambient Lighting Background */
+.dark #app-wrapper {
+  background-color: #06070c !important;
+  background-image: 
+    radial-gradient(circle at 12% 18%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 88% 22%, rgba(168, 85, 247, 0.10) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 75% 85%, rgba(147, 51, 234, 0.06) 0%, transparent 40%) !important;
+  background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+#app-wrapper {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 25%, rgba(168, 85, 247, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 50% 85%, rgba(59, 130, 246, 0.04) 0%, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Custom Sleek Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 140, 150, 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 140, 150, 0.4);
+}
+
+/* Shimmer and pulse glow utilities */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+.animate-soft-pulse {
+  animation: soft-pulse 3s ease-in-out infinite;
+}
+
+@keyframes ember-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.4)); }
+  50% { filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.8)); }
+}
+.animate-ember {
+  animation: ember-glow 2s ease-in-out infinite;
+}
+
+/* Micro shadow/depth improvements */
+.shadow-sm {
+  box-shadow: var(--glass-shadow);
+}
+.dark .shadow-sm {
+  box-shadow: var(--glass-shadow);
+  border-color: var(--glass-border);
+}
+
+/* Tactile inputs */
+input[type="text"], input[type="number"], select, textarea {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+  border-color: var(--color-indigo-500, #09090b) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+.dark input[type="text"]:focus, .dark input[type="number"]:focus, .dark select:focus, .dark textarea:focus {
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.20);
+}
+
+

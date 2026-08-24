@@ -1,6 +1,6 @@
 {
   "name": "LifeHub",
-  "description": "The ultimate premium personal operating system: track academics, log private diaries, practice skill mastery, chat with an empathetic AI Therapist, read news, and game-ify your daily growth.",
+  "description": "The ultimate premium personal operating system: track JEE academics, log private encrypted diaries, chat with an empathetic AI Therapist, organize planners & calendar milestones, read curated daily news, and gamify your daily growth.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

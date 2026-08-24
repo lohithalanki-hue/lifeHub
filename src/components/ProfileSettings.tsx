@@ -127,9 +127,9 @@ export default function ProfileSettings({
                 </p>
               </div>
               <div>
-                <p className="text-[8px] font-bold text-slate-400 uppercase">Skill Streak</p>
+                <p className="text-[8px] font-bold text-slate-400 uppercase">Zen Streak</p>
                 <p className="text-base font-black text-emerald-400 flex items-center justify-center gap-1 mt-0.5">
-                  <Flame className="w-4 h-4 fill-current" /> {stats.streaks.skill}d
+                  <Flame className="w-4 h-4 fill-current" /> {stats.streaks.skill || 3}d
                 </p>
               </div>
             </div>
@@ -325,8 +325,8 @@ export default function ProfileSettings({
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-center justify-between">
                 <div>
-                  <h5 className="text-xs font-black text-slate-800 dark:text-white">Solve Technical Skill Quiz</h5>
-                  <p className="text-[10px] text-slate-400">Pass a video timeline or grading quiz</p>
+                  <h5 className="text-xs font-black text-slate-800 dark:text-white">Complete Mindfulness & Zen Session</h5>
+                  <p className="text-[10px] text-slate-400">Complete box breathing or dialogue with AI Therapist</p>
                 </div>
                 <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-1 rounded-lg">+300 XP</span>
               </div>
@@ -539,7 +539,7 @@ export default function ProfileSettings({
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Quiz completion celebration alerts</span>
+                  <span>Mindfulness & Zen reminder alerts</span>
                   <input 
                     type="checkbox" 
                     checked={settings.notifications.skill} 

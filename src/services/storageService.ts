@@ -755,7 +755,7 @@ export const getLevelReward = (level: number): LevelReward => {
       coins: 200,
       perk: "Access to Full LifeHub Suite",
       perkIcon: "🚀",
-      description: "Foundational tier. Full access to JEE Analytics, Private Reflection Diary, Focus Tools, and Skill Mastery."
+      description: "Foundational tier. Full access to JEE Analytics, Private Reflection Diary, Focus Tools, and AI Therapist."
     },
     2: {
       title: "Self-Discipline Novice",

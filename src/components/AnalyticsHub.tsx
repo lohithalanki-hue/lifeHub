@@ -15,10 +15,10 @@ interface AnalyticsHubProps {
   exams: Exam[];
   entries: DiaryEntry[];
   goals: Goal[];
-  progress: LessonProgress[];
+  progress?: LessonProgress[];
 }
 
-export default function AnalyticsHub({ subjects, exams, entries, goals, progress }: AnalyticsHubProps) {
+export default function AnalyticsHub({ subjects, exams, entries, goals }: AnalyticsHubProps) {
   
   // Aggregate stats using useMemo
   const stats = useMemo(() => {
@@ -36,10 +36,7 @@ export default function AnalyticsHub({ subjects, exams, entries, goals, progress
     const completedGoals = goals.filter(g => g.progress === 100).length;
     const goalCompletionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
-    // 3. Lessons completion
-    const completedLessons = progress.filter(p => p.completed).length;
-
-    // 4. Subject Comparison Bar Chart Data
+    // 3. Subject Comparison Bar Chart Data
     const barData = subjects.map(sub => {
       const subExams = exams.filter(e => e.subjectId === sub.id);
       const avg = subExams.length > 0
@@ -52,7 +49,7 @@ export default function AnalyticsHub({ subjects, exams, entries, goals, progress
       };
     });
 
-    // 5. Emotional Mood score history mapping (Area Chart)
+    // 4. Emotional Mood score history mapping (Area Chart)
     const moodMap: Record<string, number> = { 'Great': 5, 'Good': 4, 'Neutral': 3, 'Tired': 2.5, 'Anxious': 2, 'Stressed': 1.5, 'Down': 1 };
     const moodHistoryData = [...entries].reverse().map(e => ({
       date: e.date,
@@ -60,14 +57,14 @@ export default function AnalyticsHub({ subjects, exams, entries, goals, progress
       Mood: e.mood
     }));
 
-    // 6. Habit consistency score calculation (out of 100)
+    // 5. Habit consistency score calculation (out of 100)
     // Formula: blend of study streak + diary entries frequency + goal compliance
     const studyStreak = 14; // Default preloaded
     const diaryFrequency = Math.min(100, (totalDiaryEntries * 15));
     const goalScore = goalCompletionRate;
     const habitConsistency = Math.round((studyStreak * 2.5) + (diaryFrequency * 0.4) + (goalScore * 0.35));
 
-    // 7. PREDICTIVE ANALYTICS ENGINE
+    // 6. PREDICTIVE ANALYTICS ENGINE
     // Let's inspect the math trends slope of last 4 exams to predict future final GPA
     let predictedGPA = Math.round(overallAvg);
     let slopeState: 'improving' | 'stable' | 'declining' = 'stable';
@@ -90,14 +87,13 @@ export default function AnalyticsHub({ subjects, exams, entries, goals, progress
       totalExams,
       totalDiaryEntries,
       goalCompletionRate,
-      completedLessons,
       barData,
       moodHistoryData,
       habitConsistency: Math.min(100, habitConsistency),
       predictedGPA,
       slopeState
     };
-  }, [subjects, exams, entries, goals, progress]);
+  }, [subjects, exams, entries, goals]);
 
   return (
     <div id="analytics-hub-container" className="space-y-6">
@@ -147,10 +143,10 @@ export default function AnalyticsHub({ subjects, exams, entries, goals, progress
 
         <div className="bg-slate-50 dark:bg-slate-900/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-            <Compass className="w-3.5 h-3.5 text-indigo-500" /> Lessons study blocks
+            <Bookmark className="w-3.5 h-3.5 text-indigo-500" /> Reflection Logs
           </p>
           <p className="text-xl font-black text-slate-800 dark:text-slate-200 mt-1">
-            {stats.completedLessons} Cleared
+            {stats.totalDiaryEntries} Recorded
           </p>
         </div>
 

@@ -543,10 +543,10 @@ export default function Therapist({ onDataUpdate, triggerXP }: TherapistProps) {
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
               <button 
-                onClick={() => handleQuickPrompt("I keep putting off my video editing practice lessons.")}
+                onClick={() => handleQuickPrompt("I keep putting off my planned goals and study schedule.")}
                 className="w-full text-left p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 border border-slate-150 dark:border-slate-700 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-2xl transition flex items-center justify-between"
               >
-                <span>Procrastination & Skills</span>
+                <span>Procrastination & Deadlines</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
               <button 

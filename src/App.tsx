@@ -8,7 +8,6 @@ import { storageService, getLevelReward } from './services/storageService';
 import Academics from './components/Academics';
 import Diary from './components/Diary';
 import Therapist from './components/Therapist';
-import SkillMastery from './components/SkillMastery';
 import GoalsCalendar from './components/GoalsCalendar';
 import DailyNews from './components/DailyNews';
 import AnalyticsHub from './components/AnalyticsHub';
@@ -17,7 +16,7 @@ import Shop from './components/Shop';
 
 // Lucide icons
 import { 
-  Home, BookOpen, Heart, Film, Calendar, Globe, BarChart3, 
+  Home, BookOpen, Heart, Calendar, Globe, BarChart3, 
   Settings, Flame, Award, Coins, Sparkles, Clock, Play, Pause, 
   RotateCcw, Info, CheckCircle2, ChevronRight, ChevronLeft, X, AlertCircle, 
   RefreshCw, Edit3, Sun, Moon, Zap, Target, Volume2, VolumeX, Send, ArrowUpRight, Check,
@@ -474,7 +473,6 @@ export default function App() {
     academics: { title: 'JEE Academic Portal', subtitle: 'Weekly JEE Tests, Subject Trajectory (PCM) & Rank Tracker', icon: BookOpen },
     diary: { title: 'Private Diary & Reflections', subtitle: 'Encrypted Daily Journaling & Mood Waves', icon: Flame },
     therapist: { title: 'AI Therapist & Mindfulness', subtitle: 'Cognitive Coping Tools, Box Breathing & Zen', icon: Heart },
-    skill: { title: 'Skill Mastery Academy', subtitle: 'Video Editing Curriculum & Interactive Lessons', icon: Film },
     goals: { title: 'Planners & Calendar', subtitle: 'Interactive Milestones & Scheduled Deadlines', icon: Calendar },
     news: { title: 'Daily Curated News', subtitle: 'Global Tech, AI Breakthroughs & Science Intel', icon: Globe },
     analytics: { title: 'Executive Analytics', subtitle: 'Predictive Diagnostics & Trajectory Forecasting', icon: BarChart3 },
@@ -576,7 +574,6 @@ export default function App() {
                 { id: 'academics', name: 'JEE Academics', icon: BookOpen, badge: 'PCM' },
                 { id: 'diary', name: 'Private Diary', icon: Flame, badge: `${entries.length}` },
                 { id: 'therapist', name: 'AI Therapist', icon: Heart, badge: 'Zen' },
-                { id: 'skill', name: 'Skill Mastery', icon: Film, badge: null },
                 { id: 'goals', name: 'Planners & Calendar', icon: Calendar, badge: `${goals.length}` },
                 { id: 'news', name: 'Daily News', icon: Globe, badge: 'Live' },
                 { id: 'analytics', name: 'Executive Analytics', icon: BarChart3, badge: null },
@@ -1072,30 +1069,30 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Card 2: Skill Mastery snapshot */}
+                  {/* Card 2: Private Diary snapshot */}
                   <div 
-                    onClick={() => setActiveTab('skill')}
+                    onClick={() => setActiveTab('diary')}
                     className="p-5 rounded-3xl glass-card-interactive shadow-sm cursor-pointer group flex flex-col justify-between h-44"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-2xl bg-purple-500/15 text-purple-400 border border-purple-500/20">
-                        <Film className="w-4 h-4" />
+                      <div className="p-2 rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                        <Flame className="w-4 h-4" />
                       </div>
                       <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition" />
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Skill Mastery</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reflection Log</span>
                       <h4 className="text-base font-black text-slate-900 dark:text-white">
-                        Video Editing Core
+                        Private Diary
                       </h4>
                       <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                        Interactive timelines, cut types & color grade modules.
+                        Encrypted daily journaling, tags & emotional mood waves.
                       </p>
                     </div>
 
-                    <div className="text-[10px] font-extrabold text-purple-400 flex items-center gap-1">
-                      <span>Resume Lessons</span>
+                    <div className="text-[10px] font-extrabold text-amber-400 flex items-center gap-1">
+                      <span>Open Journal</span>
                       <ChevronRight className="w-3 h-3" />
                     </div>
                   </div>
@@ -1188,16 +1185,7 @@ export default function App() {
               />
             )}
 
-            {/* TAB 5: SKILL MASTERY */}
-            {activeTab === 'skill' && (
-              <SkillMastery 
-                progress={progress} 
-                onDataUpdate={syncEcosystemData}
-                triggerXP={triggerXP}
-              />
-            )}
-
-            {/* TAB 6: GOALS PLANNERS & CALENDAR */}
+            {/* TAB 5: GOALS PLANNERS & CALENDAR */}
             {activeTab === 'goals' && (
               <GoalsCalendar 
                 goals={goals} 

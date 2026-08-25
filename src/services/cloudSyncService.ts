@@ -1,30 +1,38 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+import { createLifeHubSupabaseClient } from '../lib/supabase';
+
+type TokenGetter = () => Promise<string | null>;
 
 const TABLE = 'lifehub_user_data';
-const LOCAL_PREFIX = 'lifehub_user_';
-
-type TokenGetter = (options?: { template?: string }) => Promise<string | null>;
-
-function isConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_KEY);
-}
+const PHYSICAL_PREFIX = 'lifehub_user_';
 
 function localPrefixForUser(userId: string) {
-  return `${LOCAL_PREFIX}${userId}_lifehub_`;
+  return `${PHYSICAL_PREFIX}${userId}_lifehub_`;
+}
+
+// AuthGate namespaces LifeHub's localStorage keys. Use the native Storage prototype
+// here so we can read/write the physical keys without getting caught by that namespace wrapper.
+function nativeGet(key: string) {
+  return Storage.prototype.getItem.call(window.localStorage, key);
+}
+
+function nativeSet(key: string, value: string) {
+  Storage.prototype.setItem.call(window.localStorage, key, value);
+}
+
+function nativeRemove(key: string) {
+  Storage.prototype.removeItem.call(window.localStorage, key);
 }
 
 function collectLocalData(userId: string): Record<string, unknown> {
-  const physicalPrefix = localPrefixForUser(userId);
+  const prefix = localPrefixForUser(userId);
   const data: Record<string, unknown> = {};
 
   for (let i = 0; i < window.localStorage.length; i += 1) {
     const physicalKey = window.localStorage.key(i);
-    if (!physicalKey || !physicalKey.startsWith(physicalPrefix)) continue;
-
-    const logicalKey = `lifehub_${physicalKey.slice(physicalPrefix.length)}`;
-    const raw = window.localStorage.getItem(logicalKey);
+    if (!physicalKey?.startsWith(prefix)) continue;
+    const raw = nativeGet(physicalKey);
     if (raw === null) continue;
+    const logicalKey = `lifehub_${physicalKey.slice(prefix.length)}`;
     try { data[logicalKey] = JSON.parse(raw); }
     catch { data[logicalKey] = raw; }
   }
@@ -32,71 +40,40 @@ function collectLocalData(userId: string): Record<string, unknown> {
 }
 
 function restoreLocalData(userId: string, data: Record<string, unknown>) {
-  const physicalPrefix = localPrefixForUser(userId);
+  const prefix = localPrefixForUser(userId);
+  const keysToRemove: string[] = [];
 
-  // Remove only this user's LifeHub keys. Never touch Clerk or unrelated local storage.
-  const physicalKeys: string[] = [];
   for (let i = 0; i < window.localStorage.length; i += 1) {
     const physicalKey = window.localStorage.key(i);
-    if (physicalKey?.startsWith(physicalPrefix)) physicalKeys.push(physicalKey);
+    if (physicalKey?.startsWith(prefix)) keysToRemove.push(physicalKey);
   }
-  physicalKeys.forEach((physicalKey) => {
-    const logicalKey = `lifehub_${physicalKey.slice(physicalPrefix.length)}`;
-    window.localStorage.removeItem(logicalKey);
-  });
+  keysToRemove.forEach(nativeRemove);
 
-  Object.entries(data).forEach(([key, value]) => {
-    const logicalKey = key.startsWith('lifehub_') ? key : `lifehub_${key}`;
-    window.localStorage.setItem(logicalKey, JSON.stringify(value));
+  Object.entries(data).forEach(([logicalKey, value]) => {
+    const suffix = logicalKey.startsWith('lifehub_') ? logicalKey.slice('lifehub_'.length) : logicalKey;
+    nativeSet(`${prefix}${suffix}`, JSON.stringify(value));
   });
 }
 
-async function request(path: string, token: string, init: RequestInit = {}) {
-  if (!isConfigured()) throw new Error('Supabase environment variables are not configured.');
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: SUPABASE_KEY!,
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`Supabase request failed (${response.status}): ${body || response.statusText}`);
-  }
-  return response;
-}
-
-async function getSupabaseToken(getToken: TokenGetter) {
-  // The current Clerk + Supabase Third-Party Auth integration accepts the Clerk
-  // session token directly. Keep the template fallback for older configurations.
-  try {
-    const token = await getToken();
-    if (token) return token;
-  } catch {
-    // Fall through to legacy template support.
-  }
-  try { return await getToken({ template: 'supabase' }); }
-  catch { return null; }
+function clientFor(getToken: TokenGetter) {
+  return createLifeHubSupabaseClient(getToken);
 }
 
 export async function initializeCloudSync(userId: string, getToken: TokenGetter) {
-  if (!isConfigured()) return { enabled: false, source: 'local' as const };
+  const supabase = clientFor(getToken);
+  if (!supabase) return { enabled: false, source: 'local' as const };
+
   const localData = collectLocalData(userId);
-  const token = await getSupabaseToken(getToken);
-  if (!token) throw new Error('No Clerk session token available for Supabase.');
+  const { data: row, error } = await supabase
+    .from(TABLE)
+    .select('data')
+    .eq('user_id', userId)
+    .maybeSingle();
 
-  const encodedUserId = encodeURIComponent(userId);
-  const response = await request(`${TABLE}?select=data&user_id=eq.${encodedUserId}&limit=1`, token, { method: 'GET' });
-  const rows = await response.json() as Array<{ data: Record<string, unknown> | null }>;
-  const cloudData = rows[0]?.data ?? {};
-  const cloudKeys = Object.keys(cloudData);
+  if (error) throw error;
 
-  // A previous broken sync could have created an empty cloud row. Never let that
-  // empty row erase useful local data. Upload the local snapshot instead.
-  if (cloudKeys.length === 0) {
+  const cloudData = (row?.data ?? {}) as Record<string, unknown>;
+  if (Object.keys(cloudData).length === 0) {
     if (Object.keys(localData).length > 0) {
       await saveCloudData(userId, getToken);
       return { enabled: true, source: 'local' as const };
@@ -109,24 +86,25 @@ export async function initializeCloudSync(userId: string, getToken: TokenGetter)
 }
 
 export async function saveCloudData(userId: string, getToken: TokenGetter) {
-  if (!isConfigured()) return;
-  const token = await getSupabaseToken(getToken);
-  if (!token) return;
+  const supabase = clientFor(getToken);
+  if (!supabase) return;
 
   const data = collectLocalData(userId);
   if (Object.keys(data).length === 0) return;
 
-  await request(TABLE, token, {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({
-      user_id: userId,
-      data,
-      updated_at: new Date().toISOString(),
-    }),
-  });
+  const { error } = await supabase
+    .from(TABLE)
+    .upsert(
+      { user_id: userId, data, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
+
+  if (error) throw error;
 }
 
 export function isCloudSyncConfigured() {
-  return isConfigured();
+  return Boolean(
+    import.meta.env.VITE_SUPABASE_URL &&
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  );
 }

@@ -9,14 +9,20 @@ let storageScoped = false;
 function scopeLifeHubStorage(userId: string) {
   activeLifeHubUserId = userId;
   if (storageScoped) return;
+
   const storage = window.localStorage;
-  const originalGetItem = storage.getItem.bind(storage);
-  const originalSetItem = storage.setItem.bind(storage);
-  const originalRemoveItem = storage.removeItem.bind(storage);
+  const originalGetItem = Storage.prototype.getItem;
+  const originalSetItem = Storage.prototype.setItem;
+  const originalRemoveItem = Storage.prototype.removeItem;
   const keyForUser = (key: string) => key.startsWith('lifehub_') && activeLifeHubUserId ? `lifehub_user_${activeLifeHubUserId}_${key}` : key;
-  storage.getItem = (key: string) => originalGetItem(keyForUser(key));
-  storage.setItem = (key: string, value: string) => originalSetItem(keyForUser(key), value);
-  storage.removeItem = (key: string) => originalRemoveItem(keyForUser(key));
+
+  // Assigning directly to localStorage methods can fail in some browsers.
+  // Define own methods safely so account scoping cannot crash React rendering.
+  Object.defineProperties(storage, {
+    getItem: { configurable: true, value: (key: string) => originalGetItem.call(storage, keyForUser(key)) },
+    setItem: { configurable: true, value: (key: string, value: string) => originalSetItem.call(storage, keyForUser(key), value) },
+    removeItem: { configurable: true, value: (key: string) => originalRemoveItem.call(storage, keyForUser(key)) },
+  });
   storageScoped = true;
 }
 
@@ -54,7 +60,6 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
     if (!ready || !session) return;
     const getToken = (options?: { template?: string }) => session.getToken(options);
     let lastSnapshot = '';
-
     const sync = async () => {
       try {
         const physicalPrefix = `lifehub_user_${userId}_lifehub_`;
@@ -63,17 +68,14 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
           const physicalKey = window.localStorage.key(i);
           if (!physicalKey?.startsWith(physicalPrefix)) continue;
           const logicalKey = `lifehub_${physicalKey.slice(physicalPrefix.length)}`;
-          snapshot[logicalKey] = window.localStorage.getItem(logicalKey);
+          snapshot[logicalKey] = Storage.prototype.getItem.call(window.localStorage, physicalKey);
         }
         const serialized = JSON.stringify(snapshot);
         if (serialized === lastSnapshot) return;
         await saveCloudData(userId, getToken);
         lastSnapshot = serialized;
-      } catch (err) {
-        console.error('LifeHub background cloud sync failed:', err);
-      }
+      } catch (err) { console.error('LifeHub background cloud sync failed:', err); }
     };
-
     void sync();
     const interval = window.setInterval(() => void sync(), 3000);
     const onVisibilityChange = () => { if (document.visibilityState === 'hidden') void sync(); };
@@ -87,11 +89,7 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
 
 function SignedInLifeHub() {
   const { user, isLoaded } = useUser();
-
-  // Scope storage synchronously before CloudSyncBootstrap/App render. Previously this
-  // happened in an effect, allowing cloud initialization to run against unscoped keys.
   if (isLoaded && user?.id) scopeLifeHubStorage(user.id);
-
   if (!isLoaded || !user?.id) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-300 text-sm">Loading your LifeHub account...</div>;
   return <CloudSyncBootstrap userId={user.id}><div className="fixed right-5 top-5 z-[100] rounded-full border border-white/10 bg-black/20 p-1.5 shadow-lg backdrop-blur-xl"><UserButton afterSignOutUrl="/" /></div><App /></CloudSyncBootstrap>;
 }

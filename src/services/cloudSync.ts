@@ -17,39 +17,31 @@ function getSupabaseClient(tokenGetter: TokenGetter): SupabaseClient | null {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!url || !key) return null;
-
   if (!client) {
     client = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false },
-      global: {
-        headers: { 'x-client-info': 'lifehub' },
-      },
-      accessToken: async () => {
-        try {
-          // Supabase's Clerk integration commonly uses a Clerk JWT template named "supabase".
-          return await tokenGetter();
-        } catch {
-          return null;
-        }
-      },
+      accessToken: async () => tokenGetter(),
     });
   }
-
   return client;
+}
+
+function physicalPrefix(): string {
+  return `lifehub_user_${activeUserId}_`;
 }
 
 function readLocalSnapshot(): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};
+  const prefix = physicalPrefix();
   for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i);
-    if (!key || !key.startsWith(LOCAL_PREFIX)) continue;
-    const raw = localStorage.getItem(key);
+    const physicalKey = localStorage.key(i);
+    if (!physicalKey || !physicalKey.startsWith(prefix)) continue;
+    const logicalKey = physicalKey.slice(prefix.length);
+    if (!logicalKey.startsWith(LOCAL_PREFIX)) continue;
+    const raw = localStorage.getItem(logicalKey);
     if (raw === null) continue;
-    try {
-      snapshot[key] = JSON.parse(raw);
-    } catch {
-      snapshot[key] = raw;
-    }
+    try { snapshot[logicalKey] = JSON.parse(raw); }
+    catch { snapshot[logicalKey] = raw; }
   }
   return snapshot;
 }
@@ -58,8 +50,7 @@ function applySnapshot(snapshot: Record<string, unknown>): void {
   isApplyingCloudData = true;
   try {
     for (const [key, value] of Object.entries(snapshot)) {
-      if (!key.startsWith(LOCAL_PREFIX)) continue;
-      localStorage.setItem(key, JSON.stringify(value));
+      if (key.startsWith(LOCAL_PREFIX)) localStorage.setItem(key, JSON.stringify(value));
     }
   } finally {
     isApplyingCloudData = false;
@@ -70,21 +61,11 @@ export async function syncLifeHubToCloud(): Promise<void> {
   if (!activeUserId || !getToken || isApplyingCloudData) return;
   const supabase = getSupabaseClient(getToken);
   if (!supabase) return;
-
-  const { error } = await supabase
-    .from(CLOUD_TABLE)
-    .upsert(
-      {
-        user_id: activeUserId,
-        data: readLocalSnapshot(),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' },
-    );
-
-  if (error) {
-    console.error('[LifeHub] Cloud save failed:', error.message);
-  }
+  const { error } = await supabase.from(CLOUD_TABLE).upsert(
+    { user_id: activeUserId, data: readLocalSnapshot(), updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' },
+  );
+  if (error) console.error('[LifeHub] Cloud save failed:', error.message);
 }
 
 function scheduleSync(): void {
@@ -100,32 +81,17 @@ export async function initializeLifeHubCloudSync(userId: string, tokenGetter: To
   activeUserId = userId;
   getToken = tokenGetter;
   initialized = false;
-
   const supabase = getSupabaseClient(tokenGetter);
-  if (!supabase) {
-    initialized = true;
-    return;
-  }
+  if (!supabase) { initialized = true; return; }
 
-  const { data, error } = await supabase
-    .from(CLOUD_TABLE)
-    .select('data, updated_at')
-    .eq('user_id', userId)
-    .maybeSingle();
-
+  const { data, error } = await supabase.from(CLOUD_TABLE).select('data').eq('user_id', userId).maybeSingle();
   if (error) {
     console.error('[LifeHub] Cloud load failed:', error.message);
     initialized = true;
     return;
   }
-
-  if (data?.data && typeof data.data === 'object') {
-    applySnapshot(data.data as Record<string, unknown>);
-  } else {
-    // First cloud login: preserve the user's current browser data by uploading it.
-    await syncLifeHubToCloud();
-  }
-
+  if (data?.data && typeof data.data === 'object') applySnapshot(data.data as Record<string, unknown>);
+  else await syncLifeHubToCloud();
   initialized = true;
 }
 
@@ -133,22 +99,18 @@ export function startLifeHubCloudSyncWatcher(): () => void {
   const storage = window.localStorage;
   const originalSetItem = storage.setItem.bind(storage);
   const originalRemoveItem = storage.removeItem.bind(storage);
-
   storage.setItem = (key: string, value: string) => {
     originalSetItem(key, value);
     if (key.startsWith(LOCAL_PREFIX)) scheduleSync();
   };
-
   storage.removeItem = (key: string) => {
     originalRemoveItem(key);
     if (key.startsWith(LOCAL_PREFIX)) scheduleSync();
   };
-
   const onVisibilityChange = () => {
     if (document.visibilityState === 'hidden') void syncLifeHubToCloud();
   };
   window.addEventListener('visibilitychange', onVisibilityChange);
-
   return () => {
     storage.setItem = originalSetItem;
     storage.removeItem = originalRemoveItem;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SignIn, SignUp, SignedIn, SignedOut, UserButton, useSession, useUser } from '@clerk/clerk-react';
 import App from './App';
 import { initializeCloudSync, saveCloudData } from './services/cloudSyncService';
@@ -41,7 +41,12 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
   useEffect(() => {
     let cancelled = false;
     const getToken = (options?: { template?: string }) => session?.getToken(options) ?? Promise.resolve(null);
-    initializeCloudSync(userId, getToken).then(() => { if (!cancelled) setReady(true); }).catch((err) => { console.error('LifeHub cloud sync initialization failed:', err); if (!cancelled) { setError('Cloud sync could not be reached. Your local data is still safe.'); setReady(true); } });
+    initializeCloudSync(userId, getToken)
+      .then(() => { if (!cancelled) setReady(true); })
+      .catch((err) => {
+        console.error('LifeHub cloud sync initialization failed:', err);
+        if (!cancelled) { setError('Cloud sync could not be reached. Your local data is still safe.'); setReady(true); }
+      });
     return () => { cancelled = true; };
   }, [session, userId]);
 
@@ -49,19 +54,28 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
     if (!ready || !session) return;
     const getToken = (options?: { template?: string }) => session.getToken(options);
     let lastSnapshot = '';
+
     const sync = async () => {
       try {
-        const prefix = `lifehub_user_${userId}_lifehub_`;
+        const physicalPrefix = `lifehub_user_${userId}_lifehub_`;
         const snapshot: Record<string, string | null> = {};
-        for (let i = 0; i < window.localStorage.length; i += 1) { const key = window.localStorage.key(i); if (key?.startsWith(prefix)) snapshot[key] = window.localStorage.getItem(key); }
+        for (let i = 0; i < window.localStorage.length; i += 1) {
+          const physicalKey = window.localStorage.key(i);
+          if (!physicalKey?.startsWith(physicalPrefix)) continue;
+          const logicalKey = `lifehub_${physicalKey.slice(physicalPrefix.length)}`;
+          snapshot[logicalKey] = window.localStorage.getItem(logicalKey);
+        }
         const serialized = JSON.stringify(snapshot);
         if (serialized === lastSnapshot) return;
         await saveCloudData(userId, getToken);
         lastSnapshot = serialized;
-      } catch (err) { console.error('LifeHub background cloud sync failed:', err); }
+      } catch (err) {
+        console.error('LifeHub background cloud sync failed:', err);
+      }
     };
+
     void sync();
-    const interval = window.setInterval(() => void sync(), 5000);
+    const interval = window.setInterval(() => void sync(), 3000);
     const onVisibilityChange = () => { if (document.visibilityState === 'hidden') void sync(); };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', onVisibilityChange); };
@@ -73,7 +87,7 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
 
 function SignedInLifeHub() {
   const { user, isLoaded } = useUser();
-  useMemo(() => { if (isLoaded && user?.id) scopeLifeHubStorage(user.id); }, [isLoaded, user?.id]);
+  useEffect(() => { if (isLoaded && user?.id) scopeLifeHubStorage(user.id); }, [isLoaded, user?.id]);
   if (!isLoaded || !user?.id) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-300 text-sm">Loading your LifeHub account...</div>;
   return <CloudSyncBootstrap userId={user.id}><div className="fixed right-5 top-5 z-[100] rounded-full border border-white/10 bg-black/20 p-1.5 shadow-lg backdrop-blur-xl"><UserButton afterSignOutUrl="/" /></div><App /></CloudSyncBootstrap>;
 }

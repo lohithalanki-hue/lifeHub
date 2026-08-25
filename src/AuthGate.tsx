@@ -40,7 +40,7 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
 
   useEffect(() => {
     let cancelled = false;
-    const getToken = (options?: { template?: string }) => session?.getToken(options) ?? Promise.resolve(null);
+    const getToken = () => session?.getToken() ?? Promise.resolve(null);
     initializeCloudSync(userId, getToken)
       .then(() => { if (!cancelled) setReady(true); })
       .catch((err) => {
@@ -52,23 +52,13 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
 
   useEffect(() => {
     if (!ready || !session) return;
-    const getToken = (options?: { template?: string }) => session.getToken(options);
-    let lastSnapshot = '';
+    const getToken = () => session.getToken();
 
+    // Persist the current LifeHub state regularly and when the page is backgrounded.
+    // The sync service reads the physical user-scoped storage directly.
     const sync = async () => {
       try {
-        const physicalPrefix = `lifehub_user_${userId}_lifehub_`;
-        const snapshot: Record<string, string | null> = {};
-        for (let i = 0; i < window.localStorage.length; i += 1) {
-          const physicalKey = window.localStorage.key(i);
-          if (!physicalKey?.startsWith(physicalPrefix)) continue;
-          const logicalKey = `lifehub_${physicalKey.slice(physicalPrefix.length)}`;
-          snapshot[logicalKey] = window.localStorage.getItem(logicalKey);
-        }
-        const serialized = JSON.stringify(snapshot);
-        if (serialized === lastSnapshot) return;
         await saveCloudData(userId, getToken);
-        lastSnapshot = serialized;
       } catch (err) {
         console.error('LifeHub background cloud sync failed:', err);
       }
@@ -88,8 +78,7 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
 function SignedInLifeHub() {
   const { user, isLoaded } = useUser();
 
-  // Scope storage synchronously before CloudSyncBootstrap/App render. Previously this
-  // happened in an effect, allowing cloud initialization to run against unscoped keys.
+  // Scope storage synchronously before CloudSyncBootstrap/App render.
   if (isLoaded && user?.id) scopeLifeHubStorage(user.id);
 
   if (!isLoaded || !user?.id) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-300 text-sm">Loading your LifeHub account...</div>;

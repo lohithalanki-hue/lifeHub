@@ -87,7 +87,11 @@ function CloudSyncBootstrap({ userId, children }: { userId: string; children: Re
 
 function SignedInLifeHub() {
   const { user, isLoaded } = useUser();
-  useEffect(() => { if (isLoaded && user?.id) scopeLifeHubStorage(user.id); }, [isLoaded, user?.id]);
+
+  // Scope storage synchronously before CloudSyncBootstrap/App render. Previously this
+  // happened in an effect, allowing cloud initialization to run against unscoped keys.
+  if (isLoaded && user?.id) scopeLifeHubStorage(user.id);
+
   if (!isLoaded || !user?.id) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-300 text-sm">Loading your LifeHub account...</div>;
   return <CloudSyncBootstrap userId={user.id}><div className="fixed right-5 top-5 z-[100] rounded-full border border-white/10 bg-black/20 p-1.5 shadow-lg backdrop-blur-xl"><UserButton afterSignOutUrl="/" /></div><App /></CloudSyncBootstrap>;
 }

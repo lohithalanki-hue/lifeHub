@@ -6,6 +6,24 @@ import './index.css';
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+// Recover gracefully from corrupted/null localStorage state. The dashboard's
+// stats loader expects an object, so a stored JSON `null` must not be allowed
+// to crash the entire React tree before the app can render.
+try {
+  const statsKey = 'lifehub_user_stats';
+  const storedStats = localStorage.getItem(statsKey);
+  if (storedStats === 'null') {
+    localStorage.removeItem(statsKey);
+  } else if (storedStats) {
+    const parsed = JSON.parse(storedStats);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      localStorage.removeItem(statsKey);
+    }
+  }
+} catch {
+  // If localStorage is unavailable/corrupt, let the app's storage defaults handle it.
+}
+
 function MissingClerkConfig() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6 text-center">
